@@ -31,6 +31,7 @@
     current: null,       // 상세 모달에 열린 작품
     comments: [],        // 상세 모달의 댓글 목록
     pending: new Set(),  // 서버 응답을 기다리는 작품 id (하트 연타 방지)
+    loaded: false,       // 첫 불러오기 성공 여부 (실패 화면을 덮어쓰지 않기 위해)
   };
 
   // 자주 쓰는 DOM 요소를 한 번에 모아 둠
@@ -155,6 +156,7 @@
 
   /** 집계만 다시 (하트 수가 바뀌었을 수 있으니 가끔 새로고침) */
   async function refreshStats() {
+    if (!state.loaded) return;
     const { data, error } = await sb.rpc('get_artwork_stats');
     if (error) return;
     const next = {};
@@ -544,7 +546,7 @@
 
   // 다른 탭/앱 갔다 돌아오면 숫자와 투표 상태 새로고침
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
+    if (document.visibilityState === 'visible' && state.loaded) {
       safe(loadSettings).then(() => { renderGallery(); renderDetailHeart(); renderCommentFormState(); });
       refreshStats();
     }
@@ -561,9 +563,11 @@
   async function init() {
     el.errorBox.classList.add('hidden');
     el.gallery.innerHTML = '<div class="card skeleton"></div>'.repeat(4);
+    renderAuth();   // 불러오기에 실패해도 로그인 버튼은 동작해야 함
     try {
       await Promise.all([loadSettings(), restoreProfile()]);
       await loadArtworks();
+      state.loaded = true;
       renderAuth();
       renderGallery();
     } catch (err) {
