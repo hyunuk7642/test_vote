@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>캐릭터 공모전 투표</title>
+  <meta name="description" content="학생들이 만든 캐릭터에 하트와 댓글로 투표하는 사이트" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- ===================== 상단 바 ===================== -->
+  <header class="topbar">
+    <h1 class="site-title" id="siteTitle">캐릭터 공모전 투표</h1>
+
+    <!-- 로그인 전: 로그인 버튼 / 로그인 후: 이름 + 로그아웃 -->
+    <div class="auth-area" id="authArea">
+      <button class="btn btn-primary btn-sm" id="btnOpenLogin" type="button">로그인</button>
+    </div>
+  </header>
+
+  <!-- ===================== 안내문 + 투표 상태 ===================== -->
+  <section class="notice-bar">
+    <p class="notice" id="notice">마음에 드는 캐릭터에 하트를 눌러 주세요!</p>
+    <span class="badge" id="votingBadge">불러오는 중…</span>
+  </section>
+
+  <!-- ===================== 정렬 도구 ===================== -->
+  <section class="toolbar">
+    <div class="segmented" role="tablist" aria-label="정렬">
+      <button type="button" class="seg-btn is-active" data-sort="random">랜덤</button>
+      <button type="button" class="seg-btn" data-sort="popular">인기순</button>
+      <button type="button" class="seg-btn" data-sort="newest">최신순</button>
+    </div>
+    <span class="count-text" id="countText"></span>
+  </section>
+
+  <!-- ===================== 갤러리 ===================== -->
+  <main class="gallery" id="gallery" aria-live="polite">
+    <!-- 로딩 중 스켈레톤 (JS 가 실제 카드로 교체) -->
+    <div class="card skeleton"></div>
+    <div class="card skeleton"></div>
+    <div class="card skeleton"></div>
+    <div class="card skeleton"></div>
+  </main>
+
+  <!-- 빈 목록 / 오류 상태 -->
+  <section class="state-box hidden" id="emptyBox">
+    <p>아직 등록된 작품이 없어요.</p>
+  </section>
+  <section class="state-box hidden" id="errorBox">
+    <p id="errorText">작품을 불러오지 못했어요.</p>
+    <button class="btn btn-outline btn-sm" id="btnRetry" type="button">다시 시도</button>
+  </section>
+
+  <footer class="footer">
+    <a href="admin.html" class="admin-link">관리자</a>
+  </footer>
+
+  <!-- ===================== 작품 상세 모달 ===================== -->
+  <div class="modal hidden" id="detailModal" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-panel">
+      <button class="modal-close" type="button" aria-label="닫기" data-close>&times;</button>
+
+      <div class="detail-image-wrap">
+        <img id="detailImage" alt="" />
+      </div>
+
+      <div class="detail-body">
+        <h2 class="detail-title" id="detailTitle"></h2>
+        <p class="detail-author" id="detailAuthor"></p>
+        <p class="detail-desc" id="detailDesc"></p>
+
+        <!-- 하트 -->
+        <div class="detail-actions">
+          <button class="heart-btn heart-lg" id="detailHeart" type="button">
+            <span class="heart-icon">♥</span>
+            <span class="heart-count" id="detailHeartCount">0</span>
+          </button>
+          <p class="closed-text hidden" id="detailClosedText">투표가 마감되었습니다</p>
+        </div>
+
+        <!-- 댓글 -->
+        <section class="comments">
+          <h3 class="comments-title">댓글 <span id="commentCount">0</span></h3>
+          <ul class="comment-list" id="commentList"></ul>
+          <p class="comment-empty hidden" id="commentEmpty">첫 댓글을 남겨 보세요!</p>
+
+          <form class="comment-form" id="commentForm">
+            <textarea id="commentInput" maxlength="200" rows="2" placeholder="응원 댓글을 남겨요 (200자까지)"></textarea>
+            <div class="comment-form-row">
+              <span class="char-count"><span id="charCount">0</span>/200</span>
+              <button class="btn btn-primary btn-sm" type="submit" id="btnComment">등록</button>
+            </div>
+          </form>
+          <p class="closed-text hidden" id="commentClosedText">투표가 마감되어 댓글을 쓸 수 없어요</p>
+          <p class="login-hint hidden" id="commentLoginHint">
+            댓글을 쓰려면 <button type="button" class="link-btn" data-open-login>로그인</button>해 주세요
+          </p>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 로그인 모달 ===================== -->
+  <div class="modal hidden" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-panel modal-sm">
+      <button class="modal-close" type="button" aria-label="닫기" data-close>&times;</button>
+      <h2 class="modal-title" id="loginTitle">투표하려면 로그인</h2>
+      <p class="modal-sub">학교·학번·이름은 투표 중복 확인에만 사용돼요.</p>
+
+      <form id="loginForm" class="form">
+        <label class="field">
+          <span>학교</span>
+          <input type="text" id="inSchool" placeholder="예: 한빛중학교" autocomplete="organization" required maxlength="50" />
+        </label>
+        <label class="field">
+          <span>학번</span>
+          <input type="text" id="inStudentNo" placeholder="예: 10315" inputmode="numeric" required maxlength="20" />
+        </label>
+        <label class="field">
+          <span>이름</span>
+          <input type="text" id="inName" placeholder="예: 홍길동" autocomplete="name" required maxlength="30" />
+        </label>
+        <label class="check">
+          <input type="checkbox" id="inConsent" required />
+          <span>개인정보(학교·학번·이름) 수집·이용에 동의합니다. 투표 중복 확인 목적으로만 쓰이고 공모전이 끝나면 삭제돼요.</span>
+        </label>
+        <p class="form-error hidden" id="loginError"></p>
+        <button class="btn btn-primary btn-block" type="submit" id="btnLogin">참여하기</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 토스트(짧은 알림) -->
+  <div class="toast hidden" id="toast" role="status"></div>
+
+  <!-- supabase-js v2 (CDN) → window.supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
